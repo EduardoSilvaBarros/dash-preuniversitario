@@ -3,12 +3,14 @@
 DASHBOARD EJECUTIVO ESTRATÉGICO — LANZAMIENTO PREUNIVERSITARIO SISE
 ===============================================================================
 Aplicación Interactiva en Streamlit para Análisis C-Level (Brandbook SISE 2022):
-  - Carga Ultra-rápida desde colegios_sise_5km.csv (491 KB en lugar de DBF pesado)
+  - Flujo Narrativo Ajustado: Mapa Interactivo posicionado inmediatamente después del Punto 2 (Alumnos Objetivo)
+  - Modelo de Capacidad Ajustado: 19 alumnos promedio por aula (sin supuestos de costos docentes)
+  - Mapeo Inteligente de Marcas: 'César Vallejo y ADUNI' incluye tanto 'César Vallejo' como 'Aduni'
+  - Formato de Etiquetas en Dataviz: Competidor - Universidad: Ciclo (Ofertas | Rango S/)
+  - Explorador Jerárquico por Universidad Objetivo: Universidad ➔ Marca ➔ Ciclo ➔ Tarifas & Sedes
   - Identidad Visual SISE Completa: Sidebar en Negro SISE #231F20, Accent Rojo #FF0E49
   - Leyenda del Sidebar en Cuadro Blanco (#FFFFFF) de Alto Contraste
-  - Gráfico Comparativo Dual: Alumnos Objetivo Meta SISE (#FF0E49) vs Mercado Preu Asignado (#0075B0)
-  - Modelo Macro de Mercado: Tabla de Proyección y Embudo de Conversión (Funnel Chart)
-  - Filtros Multiselección y Rendimiento Canvas a 60 FPS
+  - Carga Ultra-rápida desde colegios_sise_5km.csv (491 KB)
 """
 
 import os, math, json, struct, subprocess
@@ -156,6 +158,17 @@ st.markdown("""
     .review-quote-box { background: #FFFFFF; padding: 8px 12px; border-left: 3px solid var(--sise-red); border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: var(--sise-black); font-style: italic; line-height: 1.35; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
     .sede-meta-line { font-size: 12px; color: var(--sise-black); margin-bottom: 6px; padding: 5px 10px; background: #EAECEE; border-radius: 4px; font-weight: 600; }
     
+    /* Tarjeta de Drilldown de Benchmarking */
+    .bench-drill-card {
+        background: #FFFFFF;
+        padding: 12px 16px;
+        border-left: 4px solid var(--sise-red);
+        border-radius: 4px;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        font-size: 13px;
+    }
+    
     /* CUADRO BLANCO PARA LA LEYENDA EN EL SIDEBAR (#FFFFFF) */
     .sidebar-legend {
         background: #FFFFFF !important;
@@ -205,6 +218,7 @@ PRE_PROCESSED_CSV = os.path.join(SCRIPT_DIR, 'colegios_sise_5km.csv')
 DBF_FILE = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'ESCALE', 'Padron_web_20260805', 'Padron_web.dbf'))
 COMPETENCIA_FILE = os.path.join(SCRIPT_DIR, 'ubicaciones_academias_lima.xlsx')
 DEMANDA_FILE = os.path.join(SCRIPT_DIR, 'Demanda_Preuniversitario_SISE (5).xlsx')
+BENCHMARKING_FILE = os.path.join(SCRIPT_DIR, 'Benchmarking_Preuniversitarios_Lima2026.xlsx')
 
 RADIO_KM = 5.0
 
@@ -225,6 +239,18 @@ SISE_CAMPUSES = {
     "SISE VILLA EL SALVADOR": {"lat": -12.191768167571478, "lon": -76.93744404914503, "distrito": "Villa El Salvador", "pob_2025": 506664, "mercado_asignado": 5891, "alumnos_obj": 295, "short": "VES"}
 }
 
+PRICING_TABLE = [
+    {"Producto": "Pre San Marcos", "Formato": "Semestral", "Duración": "6 meses (24 sem.)", "Matrícula Pres.": 150, "Pensión Pres.": 300, "Matrícula Virt.": 100, "Pensión Virt.": 210, "Material": 80, "Simulacros": "5 (S/25 c/u)", "Pensión Ponderada": 282.0},
+    {"Producto": "Pre San Marcos", "Formato": "Anual", "Duración": "8 meses (32 sem.)", "Matrícula Pres.": 150, "Pensión Pres.": 320, "Matrícula Virt.": 100, "Pensión Virt.": 224, "Material": 80, "Simulacros": "7 (S/25 c/u)", "Pensión Ponderada": 300.8},
+    {"Producto": "Pre San Marcos", "Formato": "Intensivo", "Duración": "3 meses (12 sem.)", "Matrícula Pres.": 180, "Pensión Pres.": 380, "Matrícula Virt.": 120, "Pensión Virt.": 266, "Material": 80, "Simulacros": "3 (S/25 c/u)", "Pensión Ponderada": 362.9},
+    {"Producto": "Pre UNI", "Formato": "Semestral", "Duración": "6 meses (24 sem.)", "Matrícula Pres.": 150, "Pensión Pres.": 300, "Matrícula Virt.": 100, "Pensión Virt.": 210, "Material": 80, "Simulacros": "5 (S/25 c/u)", "Pensión Ponderada": 282.0},
+    {"Producto": "Pre UNI", "Formato": "Anual", "Duración": "8 meses (32 sem.)", "Matrícula Pres.": 150, "Pensión Pres.": 320, "Matrícula Virt.": 100, "Pensión Virt.": 224, "Material": 80, "Simulacros": "7 (S/25 c/u)", "Pensión Ponderada": 300.8},
+    {"Producto": "Pre UNI", "Formato": "Intensivo", "Duración": "3 meses (12 sem.)", "Matrícula Pres.": 180, "Pensión Pres.": 380, "Matrícula Virt.": 120, "Pensión Virt.": 266, "Material": 80, "Simulacros": "3 (S/25 c/u)", "Pensión Ponderada": 362.9},
+    {"Producto": "Pre PUCP", "Formato": "Semestral", "Duración": "6 meses (24 sem.)", "Matrícula Pres.": 150, "Pensión Pres.": 300, "Matrícula Virt.": 100, "Pensión Virt.": 210, "Material": 80, "Simulacros": "5 (S/25 c/u)", "Pensión Ponderada": 282.0},
+    {"Producto": "Pre PUCP", "Formato": "Anual", "Duración": "8 meses (32 sem.)", "Matrícula Pres.": 150, "Pensión Pres.": 320, "Matrícula Virt.": 100, "Pensión Virt.": 224, "Material": 80, "Simulacros": "7 (S/25 c/u)", "Pensión Ponderada": 300.8},
+    {"Producto": "Pre PUCP", "Formato": "Intensivo", "Duración": "3 meses (12 sem.)", "Matrícula Pres.": 180, "Pensión Pres.": 380, "Matrícula Virt.": 120, "Pensión Virt.": 266, "Material": 80, "Simulacros": "3 (S/25 c/u)", "Pensión Ponderada": 362.9}
+]
+
 BRAND_EXECUTIVE_SUMMARIES = {
     "Aula 20": "📌 **Aula 20**: Cobertura en Lima Norte y Este. Reseñas destacan preparación para UNMSM/Agraria, con observaciones sobre espacio en aulas y alta intensidad comercial.",
     "Trilce": "📌 **Trilce**: Cadena tradicional consolidada. Destacan nivel en simulacros y exigencia docente; comentarios mencionan costo de mensualidad.",
@@ -243,15 +269,86 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+def is_competitor_matching(comp_val, selected_cadenas):
+    """
+    Empareja de forma flexible las marcas seleccionadas en el sidebar con las marcas del excel de Benchmarking.
+    Ejemplo: 'César Vallejo y ADUNI' incluye tanto 'César Vallejo' como 'Aduni' o 'ADUNI'.
+    """
+    if not selected_cadenas:
+        return False
+    
+    comp_clean = str(comp_val).strip().lower()
+    
+    for cad in selected_cadenas:
+        cad_clean = str(cad).strip().lower()
+        
+        # Coincidencia exacta
+        if comp_clean == cad_clean:
+            return True
+        
+        # Caso César Vallejo y ADUNI
+        if 'césar vallejo' in cad_clean or 'aduni' in cad_clean or 'vallejo' in cad_clean:
+            if 'vallejo' in comp_clean or 'aduni' in comp_clean:
+                return True
+                
+        # Caso Pre San Marcos
+        if 'san marcos' in cad_clean and 'san marcos' in comp_clean:
+            return True
+            
+        # Caso CEPRE UNI
+        if 'uni' in cad_clean and 'cepre' in cad_clean and 'uni' in comp_clean:
+            return True
+
+        # Caso CEPREPUCP
+        if 'pucp' in cad_clean and 'pucp' in comp_clean:
+            return True
+
+    return False
+
 # =============================================================================
-# CACHE DE DATOS CON STREAMLIT (LIGERO Y OPTIMIZADO PARA STREAMLIT CLOUD)
+# CACHE DE DATOS CON STREAMLIT
 # =============================================================================
 @st.cache_data
 def load_all_data():
     df_demanda_sede = pd.DataFrame()
     df_mercado_macro = pd.DataFrame()
+    df_bench_ciclos = pd.DataFrame()
+    df_bench_sedes = pd.DataFrame()
     
-    # 1. Cargar Demanda & Mercado Macro
+    # 1. Cargar Benchmarking_Preuniversitarios_Lima2026.xlsx
+    temp_bench = os.path.join(SCRIPT_DIR, "_temp_bench_st.xlsx")
+    if os.path.exists(BENCHMARKING_FILE):
+        subprocess.run(f'powershell -Command "Copy-Item \'{BENCHMARKING_FILE}\' \'{temp_bench}\' -Force"', shell=True)
+        read_b = temp_bench if os.path.exists(temp_bench) else BENCHMARKING_FILE
+        try:
+            wb_b = openpyxl.load_workbook(read_b, data_only=True)
+            if 'Ciclos y Precios' in wb_b.sheetnames:
+                ws_cp = wb_b['Ciclos y Precios']
+                headers_cp = [str(ws_cp.cell(2, c).value or '').strip() for c in range(1, ws_cp.max_column+1)]
+                rows_cp = []
+                for r in range(3, ws_cp.max_row+1):
+                    vals = [ws_cp.cell(r, c).value for c in range(1, len(headers_cp)+1)]
+                    if any(vals):
+                        rows_cp.append(vals)
+                df_bench_ciclos = pd.DataFrame(rows_cp, columns=headers_cp)
+                
+            if 'Sedes' in wb_b.sheetnames:
+                ws_bs = wb_b['Sedes']
+                headers_bs = [str(ws_bs.cell(2, c).value or '').strip() for c in range(1, ws_bs.max_column+1)]
+                rows_bs = []
+                for r in range(3, ws_bs.max_row+1):
+                    vals = [ws_bs.cell(r, c).value for c in range(1, len(headers_bs)+1)]
+                    if any(vals):
+                        rows_bs.append(vals)
+                df_bench_sedes = pd.DataFrame(rows_bs, columns=headers_bs)
+                
+            if os.path.exists(temp_bench):
+                try: os.remove(temp_bench)
+                except: pass
+        except Exception:
+            pass
+
+    # 2. Cargar Demanda & Mercado Macro
     temp_dem = os.path.join(SCRIPT_DIR, "_temp_dem_st.xlsx")
     if os.path.exists(DEMANDA_FILE):
         subprocess.run(f'powershell -Command "Copy-Item \'{DEMANDA_FILE}\' \'{temp_dem}\' -Force"', shell=True)
@@ -307,7 +404,7 @@ def load_all_data():
         except Exception:
             pass
 
-    # 2. Cargar Competencia
+    # 3. Cargar Competencia
     temp_comp = os.path.join(SCRIPT_DIR, "_temp_comp_st.xlsx")
     if os.path.exists(COMPETENCIA_FILE):
         subprocess.run(f'powershell -Command "Copy-Item \'{COMPETENCIA_FILE}\' \'{temp_comp}\' -Force"', shell=True)
@@ -356,7 +453,7 @@ def load_all_data():
             comp_records.append(rec)
         df_comp = pd.DataFrame(comp_records)
 
-    # 3. Cargar Colegios (Prioriza colegios_sise_5km.csv ultra-ligero de 491 KB)
+    # 4. Cargar Colegios
     if os.path.exists(PRE_PROCESSED_CSV):
         df_schools = pd.read_csv(PRE_PROCESSED_CSV, encoding='utf-8-sig')
     elif os.path.exists(DBF_FILE):
@@ -429,12 +526,12 @@ def load_all_data():
     else:
         df_schools = pd.DataFrame()
 
-    return df_schools, df_comp, df_demanda_sede, df_mercado_macro
+    return df_schools, df_comp, df_demanda_sede, df_mercado_macro, df_bench_ciclos, df_bench_sedes
 
-df_schools, df_comp, df_demanda_sede, df_mercado_macro = load_all_data()
+df_schools, df_comp, df_demanda_sede, df_mercado_macro, df_bench_ciclos, df_bench_sedes = load_all_data()
 
 # =============================================================================
-# SIDEBAR / FILTROS CON BRANDING SISE (#231F20 Y #FF0E49)
+# SIDEBAR / FILTROS CON BRANDING SISE (#231F20 Y #FF0E49) CON EFECTO GLOBAL
 # =============================================================================
 st.sidebar.markdown("## 🎛️ FILTROS DE CONTROL")
 
@@ -459,7 +556,7 @@ cadenas_seleccionadas = st.sidebar.multiselect(
     default=cadenas_disponibles
 )
 
-# CUADRO BLANCO PARA LA LEYENDA (#FFFFFF) DE ALTO CONTRASTE REQUERIDO POR EL USUARIO
+# CUADRO BLANCO PARA LA LEYENDA (#FFFFFF)
 st.sidebar.markdown("""
 <div class="sidebar-legend">
     <div class="sidebar-legend-title">🎨 Leyenda de Marcadores & Colores</div>
@@ -489,7 +586,9 @@ st.markdown("""
 </header>
 """, unsafe_allow_html=True)
 
-# Aplicar Filtros Multiselección
+# =============================================================================
+# APLICACIÓN DE FILTROS GLOBALES SOBRE TODA LA DATA
+# =============================================================================
 df_sch_filtered = df_schools[
     df_schools['sede_sise'].isin(sedes_seleccionadas) &
     df_schools['tipo_gestion'].isin(gestiones_seleccionadas)
@@ -503,8 +602,18 @@ if not df_comp.empty:
 else:
     df_comp_filtered = pd.DataFrame()
 
+if not df_bench_ciclos.empty:
+    comp_col_name = 'Competidor' if 'Competidor' in df_bench_ciclos.columns else ('Competitor' if 'Competitor' in df_bench_ciclos.columns else '')
+    if comp_col_name:
+        mask_comp = df_bench_ciclos[comp_col_name].apply(lambda c: is_competitor_matching(c, cadenas_seleccionadas))
+        df_bench_filtered = df_bench_ciclos[mask_comp].copy()
+    else:
+        df_bench_filtered = df_bench_ciclos.copy()
+else:
+    df_bench_filtered = pd.DataFrame()
+
 # =============================================================================
-# BLOQUE 1: TARJETAS KPI EJECUTIVAS
+# BLOQUE 1: TARJETAS KPI EJECUTIVAS (RECALCULADAS CON FILTROS GLOBALES)
 # =============================================================================
 col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -532,151 +641,8 @@ with col5:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =============================================================================
-# BLOQUE 2: GRÁFICOS INTERACTIVOS — CON BARRAS COMPARATIVAS DUALES (ALUMNOS OBJETIVO VS MERCADO ASIGNADO)
+# HELPER HTML DEL MAPA ACELERADO POR CANVAS
 # =============================================================================
-st.subheader("📊 » Análisis de Potencial de Mercado y Competencia por Sede SISE")
-
-t0, t1, t2, t3 = st.tabs([
-    "🎯 Potencial & Embudo de Mercado",
-    "🏛️ Colegios por Sede (Públicos vs Privados)", 
-    "📙 Competencia por Marca", 
-    "🎯 Matriz Océano Azul (Potencial vs Competencia)"
-])
-
-with t0:
-    st.markdown("### » 1. Modelo Macro de Estimación de Mercado de Preuniversitario (Lima 2025 - 2026)")
-    st.markdown("El mercado total se calcula multiplicando los postulantes proyectados al 2026 (+2.0% crecimiento anual) por el % de alcanzabilidad en Lima y el % de alumnos que contrata academia. El objetivo corporativo SISE es captar el **5.0% de Market Share**.")
-    
-    if not df_mercado_macro.empty:
-        df_m_display = df_mercado_macro.copy()
-        df_m_display['Postulantes 2025'] = df_m_display['Postulantes 2025'].map('{:,.0f}'.format)
-        df_m_display['Ingresantes 2025'] = df_m_display['Ingresantes 2025'].map('{:,.0f}'.format)
-        df_m_display['% No Ingresa (info)'] = df_m_display['% No Ingresa (info)'].map('{:.1%}'.format)
-        df_m_display['Postulantes 2026 (proy.)'] = df_m_display['Postulantes 2026 (proy.)'].map('{:,.0f}'.format)
-        df_m_display['% Alcanzable (Lima)'] = df_m_display['% Alcanzable (Lima)'].apply(lambda x: f"{x:.1%}" if pd.notnull(x) else "-")
-        df_m_display['% Usa Academia'] = df_m_display['% Usa Academia'].apply(lambda x: f"{x:.1%}" if pd.notnull(x) else "-")
-        df_m_display['Mercado de Preu'] = df_m_display['Mercado de Preu'].map('{:,.0f}'.format)
-        df_m_display['% Market Share'] = df_m_display['% Market Share'].apply(lambda x: f"{x:.1%}" if pd.notnull(x) else "-")
-        df_m_display['Alumnos Objetivo'] = df_m_display['Alumnos Objetivo'].map('{:,.0f}'.format)
-        
-        st.dataframe(df_m_display, use_container_width=True)
-
-    st.markdown("### » 2. Comparativo de Alumnos Objetivo Meta SISE (5% Captación) vs Mercado Preu Asignado por Sede")
-    
-    col_f1, col_f2 = st.columns([1, 1])
-    
-    with col_f1:
-        # EMBUDO DE CONVERSIÓN
-        funnel_data = dict(
-            number=[128806, 131383, 83721, 61002, 3050],
-            stage=["Postulantes Totales '25", "Postulantes Proy. '26 (+2%)", "Alcanzables Residentes Lima", "Mercado Preu (Usa Academia)", "Alumnos Objetivo SISE (5% Share)"]
-        )
-        fig_funnel = px.funnel(funnel_data, x='number', y='stage', title="Embudo Metodológico de Estimación de Demanda", color_discrete_sequence=['#FF0E49'])
-        fig_funnel.update_layout(height=450, font=dict(family="Barlow Condensed"))
-        st.plotly_chart(fig_funnel, use_container_width=True)
-        
-    with col_f2:
-        # GRÁFICO COMPARATIVO DUAL
-        potencial_list = []
-        for cname in sedes_seleccionadas:
-            info_c = SISE_CAMPUSES[cname]
-            potencial_list.append({
-                "Sede SISE": cname.replace("SISE ", ""),
-                "Alumnos Objetivo (Meta SISE 5%)": info_c['alumnos_obj'],
-                "Mercado Preu Asignado Total": info_c['mercado_asignado']
-            })
-        df_pot = pd.DataFrame(potencial_list).sort_values(by="Alumnos Objetivo (Meta SISE 5%)", ascending=True)
-
-        df_pot_grouped = pd.melt(
-            df_pot, 
-            id_vars=["Sede SISE"], 
-            value_vars=["Alumnos Objetivo (Meta SISE 5%)", "Mercado Preu Asignado Total"],
-            var_name="Métrica", 
-            value_name="Cantidad Alumnos"
-        )
-
-        fig_pot = px.bar(
-            df_pot_grouped, y="Sede SISE", x="Cantidad Alumnos", color="Métrica",
-            title="Potencial por Sede: Alumnos Objetivo Meta SISE vs Mercado Preu Asignado",
-            orientation="h", barmode="group",
-            text="Cantidad Alumnos",
-            color_discrete_map={
-                "Alumnos Objetivo (Meta SISE 5%)": "#FF0E49",
-                "Mercado Preu Asignado Total": "#0075B0"
-            }
-        )
-        fig_pot.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
-        fig_pot.update_layout(xaxis_title="Cantidad de Alumnos", yaxis_title="", height=450, font=dict(family="Barlow Condensed"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-        st.plotly_chart(fig_pot, use_container_width=True)
-
-with t1:
-    summary_list = []
-    for cname in sedes_seleccionadas:
-        df_sub = df_sch_filtered[df_sch_filtered['sede_sise'] == cname] if not df_sch_filtered.empty else pd.DataFrame()
-        summary_list.append({
-            "Sede SISE": cname.replace("SISE ", ""),
-            "Públicos": len(df_sub[df_sub['tipo_gestion'] == 'Público']) if not df_sub.empty else 0,
-            "Privados": len(df_sub[df_sub['tipo_gestion'] == 'Privado']) if not df_sub.empty else 0,
-            "Total Colegios": len(df_sub)
-        })
-    df_sum = pd.DataFrame(summary_list).sort_values(by="Total Colegios", ascending=True)
-
-    fig_bar = px.bar(
-        df_sum, y="Sede SISE", x=["Privados", "Públicos"],
-        title="Distribución de Colegios Activos a 5 km (Privados vs Públicos)",
-        orientation="h", barmode="stack",
-        color_discrete_map={"Privados": "#0075B0", "Públicos": "#009860"}
-    )
-    fig_bar.update_layout(xaxis_title="Cantidad de Colegios Activos", yaxis_title="", height=420, font=dict(family="Barlow Condensed"))
-    st.plotly_chart(fig_bar, use_container_width=True)
-
-with t2:
-    if not df_comp_filtered.empty:
-        comp_summary = df_comp_filtered.groupby(['cadena']).size().reset_index(name='Cantidad de Locales')
-        color_map = {
-            "Aula 20": "#00a8ff", "Trilce": "#e67e22", "Pamer": "#bdc3c7",
-            "César Vallejo y ADUNI": "#8e44ad", "CEPREPUCP": "#0c2461",
-            "Pre San Marcos": "#800020", "CEPRE UNI": "#f9e79f"
-        }
-        fig_pie = px.pie(
-            comp_summary, values='Cantidad de Locales', names='cadena',
-            title='Participación por Cadena de Academias Competencia Seleccionadas',
-            color='cadena', color_discrete_map=color_map, hole=0.4
-        )
-        fig_pie.update_layout(height=420, font=dict(family="Barlow Condensed"))
-        st.plotly_chart(fig_pie, use_container_width=True)
-    else:
-        st.info("No hay marcas de competencia seleccionadas.")
-
-with t3:
-    matrix_list = []
-    for cname in sedes_seleccionadas:
-        df_s = df_sch_filtered[df_sch_filtered['sede_sise'] == cname] if not df_sch_filtered.empty else pd.DataFrame()
-        cnt_comp = len(df_comp_filtered[df_comp_filtered['sedes_5km'].apply(lambda x: cname in x)]) if not df_comp_filtered.empty else 0
-        matrix_list.append({
-            "Sede": cname.replace("SISE ", ""),
-            "Colegios Activos (5km)": len(df_s),
-            "Competencia Academias (5km)": cnt_comp,
-            "Alumnos Meta": SISE_CAMPUSES[cname]['alumnos_obj']
-        })
-    df_matrix = pd.DataFrame(matrix_list)
-
-    if not df_matrix.empty:
-        fig_scat = px.scatter(
-            df_matrix, x="Colegios Activos (5km)", y="Competencia Academias (5km)",
-            size="Alumnos Meta", text="Sede", color="Colegios Activos (5km)",
-            title="Matriz de Oportunidad: Colegios Activos vs Competencia Presente",
-            color_continuous_scale=["#0075B0", "#FF0E49"], size_max=40
-        )
-        fig_scat.update_traces(textposition='top center')
-        fig_scat.update_layout(height=450, font=dict(family="Barlow Condensed"))
-        st.plotly_chart(fig_scat, use_container_width=True)
-
-# =============================================================================
-# BLOQUE 3: MAPA ULTRARRÁPIDO ACELERADO POR CANVAS (60 FPS)
-# =============================================================================
-st.subheader("🗺️ » Mapa Georeferenciado en Tiempo Real (Acelerado por Canvas)")
-
 if len(sedes_seleccionadas) == 1:
     s_key = sedes_seleccionadas[0]
     center_lat, center_lon = SISE_CAMPUSES[s_key]['lat'], SISE_CAMPUSES[s_key]['lon']
@@ -800,19 +766,381 @@ fast_canvas_map_html = f"""<!DOCTYPE html>
 </body>
 </html>"""
 
-components.html(fast_canvas_map_html, height=540, scrolling=False)
+# =============================================================================
+# BLOQUE 2: GRÁFICOS INTERACTIVOS (LAS 4 PESTAÑAS PRINCIPALES ORIGINALES)
+# =============================================================================
+st.subheader("📊 » Análisis de Potencial de Mercado y Competencia por Sede SISE")
+
+t0, t1, t2, t3 = st.tabs([
+    "🎯 Potencial & Embudo de Mercado",
+    "🏛️ Colegios por Sede (Públicos vs Privados)", 
+    "📙 Competencia por Marca", 
+    "🎯 Matriz Océano Azul (Potencial vs Competencia)"
+])
+
+with t0:
+    st.markdown("### » 1. Modelo Macro de Estimación de Mercado de Preuniversitario (Lima 2025 - 2026)")
+    st.markdown("El mercado total se calcula multiplicando los postulantes proyectados al 2026 (+2.0% crecimiento anual) por el % de alcanzabilidad en Lima y el % de alumnos que contrata academia. El objetivo corporativo SISE es captar el **5.0% de Market Share**.")
+    
+    if not df_mercado_macro.empty:
+        df_m_display = df_mercado_macro.copy()
+        df_m_display['Postulantes 2025'] = df_m_display['Postulantes 2025'].map('{:,.0f}'.format)
+        df_m_display['Ingresantes 2025'] = df_m_display['Ingresantes 2025'].map('{:,.0f}'.format)
+        df_m_display['% No Ingresa (info)'] = df_m_display['% No Ingresa (info)'].map('{:.1%}'.format)
+        df_m_display['Postulantes 2026 (proy.)'] = df_m_display['Postulantes 2026 (proy.)'].map('{:,.0f}'.format)
+        df_m_display['% Alcanzable (Lima)'] = df_m_display['% Alcanzable (Lima)'].apply(lambda x: f"{x:.1%}" if pd.notnull(x) else "-")
+        df_m_display['% Usa Academia'] = df_m_display['% Usa Academia'].apply(lambda x: f"{x:.1%}" if pd.notnull(x) else "-")
+        df_m_display['Mercado de Preu'] = df_m_display['Mercado de Preu'].map('{:,.0f}'.format)
+        df_m_display['% Market Share'] = df_m_display['% Market Share'].apply(lambda x: f"{x:.1%}" if pd.notnull(x) else "-")
+        df_m_display['Alumnos Objetivo'] = df_m_display['Alumnos Objetivo'].map('{:,.0f}'.format)
+        
+        st.dataframe(df_m_display, use_container_width=True)
+
+    st.markdown("### » 2. Comparativo de Alumnos Objetivo Meta SISE (5% Captación) vs Mercado Preu Asignado por Sede")
+    
+    col_f1, col_f2 = st.columns([1, 1])
+    
+    with col_f1:
+        # EMBUDO DE CONVERSIÓN
+        funnel_data = dict(
+            number=[128806, 131383, 83721, 61002, 3050],
+            stage=["Postulantes Totales '25", "Postulantes Proy. '26 (+2%)", "Alcanzables Residentes Lima", "Mercado Preu (Usa Academia)", "Alumnos Objetivo SISE (5% Share)"]
+        )
+        fig_funnel = px.funnel(funnel_data, x='number', y='stage', title="Embudo Metodológico de Estimación de Demanda", color_discrete_sequence=['#FF0E49'])
+        fig_funnel.update_layout(height=450, font=dict(family="Barlow Condensed"))
+        st.plotly_chart(fig_funnel, use_container_width=True)
+        
+    with col_f2:
+        # GRÁFICO COMPARATIVO DUAL
+        potencial_list = []
+        for cname in sedes_seleccionadas:
+            info_c = SISE_CAMPUSES[cname]
+            potencial_list.append({
+                "Sede SISE": cname.replace("SISE ", ""),
+                "Alumnos Objetivo (Meta SISE 5%)": info_c['alumnos_obj'],
+                "Mercado Preu Asignado Total": info_c['mercado_asignado']
+            })
+        df_pot = pd.DataFrame(potencial_list).sort_values(by="Alumnos Objetivo (Meta SISE 5%)", ascending=True)
+
+        df_pot_grouped = pd.melt(
+            df_pot, 
+            id_vars=["Sede SISE"], 
+            value_vars=["Alumnos Objetivo (Meta SISE 5%)", "Mercado Preu Asignado Total"],
+            var_name="Métrica", 
+            value_name="Cantidad Alumnos"
+        )
+
+        fig_pot = px.bar(
+            df_pot_grouped, y="Sede SISE", x="Cantidad Alumnos", color="Métrica",
+            title="Potencial por Sede: Alumnos Objetivo Meta SISE vs Mercado Preu Asignado",
+            orientation="h", barmode="group",
+            text="Cantidad Alumnos",
+            color_discrete_map={
+                "Alumnos Objetivo (Meta SISE 5%)": "#FF0E49",
+                "Mercado Preu Asignado Total": "#0075B0"
+            }
+        )
+        fig_pot.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+        fig_pot.update_layout(xaxis_title="Cantidad de Alumnos", yaxis_title="", height=450, font=dict(family="Barlow Condensed"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        st.plotly_chart(fig_pot, use_container_width=True)
+
+    # 🗺️ MAPA INTERACTIVO POSICIONADO EXACTAMENTE DESPUÉS DEL PUNTO 2 (CUANTITATIVO Y GEOGRÁFICO)
+    st.markdown("---")
+    st.markdown("### » 3. Mapa Georeferenciado en Tiempo Real (Sedes SISE, Academias Competencia & Colegios a 5 km)")
+    st.markdown("Inspección geográfica directa para validar la cobertura territorial y cercanía entre los colegios alimentadores, la competencia y los campus SISE:")
+    components.html(fast_canvas_map_html, height=540, scrolling=False)
+
+with t1:
+    summary_list = []
+    for cname in sedes_seleccionadas:
+        df_sub = df_sch_filtered[df_sch_filtered['sede_sise'] == cname] if not df_sch_filtered.empty else pd.DataFrame()
+        summary_list.append({
+            "Sede SISE": cname.replace("SISE ", ""),
+            "Públicos": len(df_sub[df_sub['tipo_gestion'] == 'Público']) if not df_sub.empty else 0,
+            "Privados": len(df_sub[df_sub['tipo_gestion'] == 'Privado']) if not df_sub.empty else 0,
+            "Total Colegios": len(df_sub)
+        })
+    df_sum = pd.DataFrame(summary_list).sort_values(by="Total Colegios", ascending=True)
+
+    fig_bar = px.bar(
+        df_sum, y="Sede SISE", x=["Privados", "Públicos"],
+        title="Distribución de Colegios Activos a 5 km (Privados vs Públicos)",
+        orientation="h", barmode="stack",
+        color_discrete_map={"Privados": "#0075B0", "Públicos": "#009860"}
+    )
+    fig_bar.update_layout(xaxis_title="Cantidad de Colegios Activos", yaxis_title="", height=420, font=dict(family="Barlow Condensed"))
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with t2:
+    if not df_comp_filtered.empty:
+        comp_summary = df_comp_filtered.groupby(['cadena']).size().reset_index(name='Cantidad de Locales')
+        color_map = {
+            "Aula 20": "#00a8ff", "Trilce": "#e67e22", "Pamer": "#bdc3c7",
+            "César Vallejo y ADUNI": "#8e44ad", "CEPREPUCP": "#0c2461",
+            "Pre San Marcos": "#800020", "CEPRE UNI": "#f9e79f"
+        }
+        fig_pie = px.pie(
+            comp_summary, values='Cantidad de Locales', names='cadena',
+            title='Participación por Cadena de Academias Competencia Seleccionadas',
+            color='cadena', color_discrete_map=color_map, hole=0.4
+        )
+        fig_pie.update_layout(height=420, font=dict(family="Barlow Condensed"))
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        st.info("No hay marcas de competencia seleccionadas.")
+
+with t3:
+    matrix_list = []
+    for cname in sedes_seleccionadas:
+        df_s = df_sch_filtered[df_sch_filtered['sede_sise'] == cname] if not df_sch_filtered.empty else pd.DataFrame()
+        cnt_comp = len(df_comp_filtered[df_comp_filtered['sedes_5km'].apply(lambda x: cname in x)]) if not df_comp_filtered.empty else 0
+        matrix_list.append({
+            "Sede": cname.replace("SISE ", ""),
+            "Colegios Activos (5km)": len(df_s),
+            "Competencia Academias (5km)": cnt_comp,
+            "Alumnos Meta": SISE_CAMPUSES[cname]['alumnos_obj']
+        })
+    df_matrix = pd.DataFrame(matrix_list)
+
+    if not df_matrix.empty:
+        fig_scat = px.scatter(
+            df_matrix, x="Colegios Activos (5km)", y="Competencia Academias (5km)",
+            size="Alumnos Meta", text="Sede", color="Colegios Activos (5km)",
+            title="Matriz de Oportunidad: Colegios Activos vs Competencia Presente",
+            color_continuous_scale=["#0075B0", "#FF0E49"], size_max=40
+        )
+        fig_scat.update_traces(textposition='top center')
+        fig_scat.update_layout(height=450, font=dict(family="Barlow Condensed"))
+        st.plotly_chart(fig_scat, use_container_width=True)
 
 # =============================================================================
-# BLOQUE 4: TABLAS Y ACORDEÓN ERGONÓMICO COMPACTO (EXPANDERS ANIDADOS)
+# BLOQUE 3: FACTORES CUALITATIVOS, FINANCIEROS Y BENCHMARKING (DEBAJO DE LOS GRÁFICOS)
 # =============================================================================
-st.subheader("📋 » Análisis de Competencia & Modelo de Demanda Distrital")
+st.subheader("💡 » Análisis Cualitativo, Financiero & Benchmarking de Precios")
 
-tab_acordeon, tab_demanda, tab_tabla_comp, tab_col, tab_resumen = st.tabs([
-    "💬 ESTRUCTURA COMPACTA DE RESEÑAS POR MARCA Y SEDE", 
+with st.expander("💵 1. TARIFARIO OFICIAL Y CALCULADORA DE TICKET PROMEDIO SISE", expanded=True):
+    st.markdown("Precios proyectados según el Modelo Financiero de Viabilidad v3 (modalidad presencial y virtual con mix ponderado):")
+    
+    df_pricing = pd.DataFrame(PRICING_TABLE)
+    df_pricing_display = df_pricing.copy()
+    df_pricing_display['Matrícula Pres.'] = df_pricing_display['Matrícula Pres.'].map('S/ {:,.2f}'.format)
+    df_pricing_display['Pensión Pres.'] = df_pricing_display['Pensión Pres.'].map('S/ {:,.2f} / mes'.format)
+    df_pricing_display['Matrícula Virt.'] = df_pricing_display['Matrícula Virt.'].map('S/ {:,.2f}'.format)
+    df_pricing_display['Pensión Virt.'] = df_pricing_display['Pensión Virt.'].map('S/ {:,.2f} / mes'.format)
+    df_pricing_display['Material'] = df_pricing_display['Material'].map('S/ {:,.2f}'.format)
+    df_pricing_display['Pensión Ponderada'] = df_pricing_display['Pensión Ponderada'].map('S/ {:,.2f} / mes'.format)
+    
+    st.dataframe(df_pricing_display, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("#### 🧮 Calculadora Rápida de Ticket Promedio e Ingreso por Alumno")
+    
+    c_p1, c_p2, c_p3 = st.columns(3)
+    with c_p1:
+        sel_prod = st.selectbox("Seleccionar Programa:", ["Pre San Marcos", "Pre UNI", "Pre PUCP"])
+    with c_p2:
+        sel_form = st.selectbox("Seleccionar Formato:", ["Semestral", "Anual", "Intensivo"])
+    with c_p3:
+        sel_mod = st.selectbox("Modalidad:", ["Presencial", "Virtual", "Ponderado (80% Pres / 20% Virt)"])
+        
+    row_match = df_pricing[(df_pricing['Producto'] == sel_prod) & (df_pricing['Formato'] == sel_form)].iloc[0]
+    
+    if sel_mod == "Presencial":
+        mat_val = row_match['Matrícula Pres.']
+        pen_val = row_match['Pensión Pres.']
+    elif sel_mod == "Virtual":
+        mat_val = row_match['Matrícula Virt.']
+        pen_val = row_match['Pensión Virt.']
+    else:
+        mat_val = 140.0 if sel_form != "Intensivo" else 171.0
+        pen_val = row_match['Pensión Ponderada']
+        
+    meses_num = 6 if sel_form == "Semestral" else (8 if sel_form == "Anual" else 3)
+    mat_cost = 80.0
+    sim_cost = 25.0 * (5 if sel_form == "Semestral" else (7 if sel_form == "Anual" else 3))
+    
+    total_ticket = mat_val + (pen_val * meses_num) + mat_cost + sim_cost
+    
+    st.markdown(f"""
+    <div style="background:#FFFFFF; padding:15px; border-radius:6px; border-left:5px solid #FF0E49; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+        <h4 style="margin:0; color:#FF0E49; text-transform:uppercase;">Resumen del Ticket por Alumno ({sel_prod} - {sel_form}):</h4>
+        <p style="font-size:16px; margin-top:8px; color:#231F20;">
+            <b>• Matrícula:</b> S/ {mat_val:,.2f} &nbsp;|&nbsp; 
+            <b>• Mensualidad:</b> S/ {pen_val:,.2f} x {meses_num} meses &nbsp;|&nbsp; 
+            <b>• Materiales:</b> S/ {mat_cost:,.2f} &nbsp;|&nbsp; 
+            <b>• Simulacros:</b> S/ {sim_cost:,.2f}
+        </p>
+        <h3 style="margin-top:10px; color:#231F20; font-weight:900;">TICKET TOTAL DEL CICLO / ALUMNO: <span style="color:#FF0E49;">S/ {total_ticket:,.2f}</span></h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("📖 Sustento Financiero y Metodología de Fijación de Pensión Mensual (S/ 300 / mes)", expanded=False):
+        st.markdown("""
+        La pensión de **S/ 300.00 mensuales** para la modalidad presencial se determinó en el **Modelo Financiero de Viabilidad v3 de SISE** mediante 3 criterios clave:
+
+        #### 1. Estrategia de Precio por Penetración (Benchmarking de Competencia)
+        * **CEPREPUCP / CEPRE UNI / Pre San Marcos Oficial:** S/ 450 a S/ 650 / mes.
+        * **Trilce / Pamer:** S/ 380 a S/ 480 / mes.
+        * **Aula 20 / ADUNI:** S/ 280 a S/ 350 / mes.
+        * **Posicionamiento SISE (S/ 300 / mes):** Se ubica exactamente en la franja competitiva de alta demanda comercial (**S/ 280 - S/ 320**), ofreciendo un descuento del **20% al 30% respecto a Trilce/Pamer**, respaldado por la infraestructura física y laboratorios de los campus SISE.
+
+        #### 2. Modelo de Capacidad por Aula
+        * **Aforo Meta por Sección:** 35 alumnos por aula.
+        * **Ocupación Promedio en Aulas SISE:** Nuestras aulas alcanzan en promedio **19 alumnos por sección**.
+        * **Ingreso Bruto Promedio por Aula:** 19 alumnos × S/ 300.00 = **S/ 5,700.00 / mes por aula** (con un potencial de facturación de hasta **S/ 10,500.00 / mes** a aforo máximo de 35 alumnos).
+
+        #### 3. Tarifa Ponderada Corporativa (80% Presencial + 20% Virtual)
+        * **Pensión Presencial:** S/ 300.00 / mes (cubre infraestructura física).
+        * **Pensión Virtual:** S/ 210.00 / mes (costo marginal bajo).
+        * **Pensión Ponderada Corporativa:** (0.80 × 300) + (0.20 × 210) = **S/ 282.00 / mes**, cifra utilizada para el P&L corporativo del proyecto.
+        """)
+
+with st.expander("🔍 2. BENCHMARKING DE COMPETENCIA — ANÁLISIS POR MARCA Y UNIVERSIDAD OBJETIVO", expanded=True):
+    st.markdown("Análisis comparativo de ofertas preuniversitarias (Fuente: Benchmarking_Preuniversitarios_Lima2026.xlsx):")
+    
+    if not df_bench_filtered.empty:
+        comp_col_name = 'Competidor' if 'Competidor' in df_bench_filtered.columns else ('Competitor' if 'Competitor' in df_bench_filtered.columns else '')
+        uni_col_name = 'Universidad objetivo' if 'Universidad objetivo' in df_bench_filtered.columns else 'Universidad'
+        mod_col_name = 'Modalidad' if 'Modalidad' in df_bench_filtered.columns else 'Modalidad'
+        
+        # PREPARAR DATAFRAME DE BENCHMARKING
+        df_b_proc = df_bench_filtered.copy()
+        df_b_proc['Precio_Num'] = pd.to_numeric(df_b_proc['Contado comparable (S/)'], errors='coerce').fillna(0)
+        df_b_proc = df_b_proc[df_b_proc['Precio_Num'] > 0].copy()
+        
+        for col in [comp_col_name, uni_col_name, 'Ciclo', 'Tarifa / Segmento', 'Sedes incluidas', mod_col_name]:
+            if col in df_b_proc.columns:
+                df_b_proc[col] = df_b_proc[col].astype(str).replace({'nan': '', 'None': '', 'NaN': ''}).str.strip()
+
+        # NIVEL 1: AGRUPAMIENTO EJECUTIVO POR (COMPETIDOR + UNIVERSIDAD OBJETIVO + CICLO)
+        grouped_bench = df_b_proc.groupby([comp_col_name, uni_col_name, 'Ciclo']).agg(
+            Precio_Promedio=('Precio_Num', 'mean'),
+            Precio_Min=('Precio_Num', 'min'),
+            Precio_Max=('Precio_Num', 'max'),
+            Cant_Ofertas=('Precio_Num', 'count')
+        ).reset_index()
+
+        # FORMATO DE ETIQUETA SOLICITADO: Competidor - Universidad: Ciclo (Ofertas | Rango S/)
+        def make_user_requested_label(r):
+            c = str(r[comp_col_name]).strip()
+            u = str(r[uni_col_name]).strip()
+            cic = str(r['Ciclo']).strip()
+            cnt = r['Cant_Ofertas']
+            p_min = r['Precio_Min']
+            p_max = r['Precio_Max']
+            
+            lbl = f"{c} - {u}: {cic}"
+            if cnt > 1 and p_min != p_max:
+                lbl += f" ({cnt} ofer. | S/ {p_min:,.0f} - S/ {p_max:,.0f})"
+            elif cnt > 1:
+                lbl += f" ({cnt} ofer.)"
+            return lbl
+
+        grouped_bench['Label_Ejecutivo'] = grouped_bench.apply(make_user_requested_label, axis=1)
+        grouped_bench = grouped_bench.sort_values(by='Precio_Promedio', ascending=True)
+
+        st.markdown("#### 📊 Ranking de Precios Promedio (Competidor - Universidad: Ciclo)")
+        
+        fig_macro_bench = px.bar(
+            grouped_bench.tail(20),
+            y="Label_Ejecutivo",
+            x="Precio_Promedio",
+            color=comp_col_name,
+            title="Precio Promedio al Contado (Competidor - Universidad: Ciclo)",
+            orientation="h",
+            text="Precio_Promedio",
+            color_discrete_sequence=SISE_CHART_PALETTE,
+            hover_data={
+                "Label_Ejecutivo": False,
+                comp_col_name: True,
+                uni_col_name: True,
+                "Ciclo": True,
+                "Precio_Promedio": ":,.0f",
+                "Precio_Min": ":,.0f",
+                "Precio_Max": ":,.0f",
+                "Cant_Ofertas": True
+            }
+        )
+        fig_macro_bench.update_traces(texttemplate=' S/ %{text:,.0f} (prom.)', textposition='outside')
+        fig_macro_bench.update_layout(
+            xaxis_title="Precio Promedio al Contado (S/)",
+            yaxis_title="",
+            height=580,
+            margin=dict(l=20, r=130, t=50, b=40),
+            font=dict(family="Barlow Condensed", size=13),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig_macro_bench, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("#### 🏛️ Explorador Jerárquico: Universidad Objetivo ➔ Competidor ➔ Ciclo ➔ Tarifas & Sedes")
+        st.markdown("Despliega una Universidad Objetivo para examinar las marcas que compiten en ella y desglosar sus ofertas por sedes y tarifas:")
+
+        universidades_b = sorted(list(df_b_proc[uni_col_name].unique()))
+        
+        for uni in universidades_b:
+            df_uni_b = df_b_proc[df_b_proc[uni_col_name] == uni]
+            cadenas_u = sorted(list(df_uni_b[comp_col_name].unique()))
+            cant_total_uni = len(df_uni_b)
+            p_min_u = df_uni_b['Precio_Num'].min()
+            p_max_u = df_uni_b['Precio_Num'].max()
+            
+            with st.expander(f"🏛️ UNIVERSIDAD OBJETIVO: {uni.upper()} ({cant_total_uni} ofertas | Rango: S/ {p_min_u:,.0f} - S/ {p_max_u:,.0f})", expanded=False):
+                for cad in cadenas_u:
+                    df_cad_b = df_uni_b[df_uni_b[comp_col_name] == cad]
+                    ciclos_cad = sorted(list(df_cad_b['Ciclo'].unique()))
+                    
+                    st.markdown(f"##### 🏫 Competidor: **{cad}** ({len(df_cad_b)} ofertas para {uni})")
+                    
+                    for cic in ciclos_cad:
+                        df_sub_c = df_cad_b[df_cad_b['Ciclo'] == cic]
+                        p_min = df_sub_c['Precio_Num'].min()
+                        p_max = df_sub_c['Precio_Num'].max()
+                        p_avg = df_sub_c['Precio_Num'].mean()
+                        cnt = len(df_sub_c)
+                        
+                        cic_title = f"📘 Ciclo: {cic} — {cnt} registros | Promed: S/ {p_avg:,.0f} (Rango: S/ {p_min:,.0f} a S/ {p_max:,.0f})"
+                        
+                        with st.expander(cic_title, expanded=False):
+                            for idx, r_row in df_sub_c.reset_index().iterrows():
+                                tar_name = r_row.get('Tarifa / Segmento', '')
+                                sed_name = r_row.get('Sedes incluidas', '')
+                                dur_name = r_row.get('Duración', '')
+                                p_mens = r_row.get('Mensual comparable (S/)', '')
+
+                                st.markdown(f"""
+                                <div class="bench-drill-card">
+                                    <b>🔹 Registro #{idx+1}:</b> <span style="color:#FF0E49; font-weight:900; font-size:15px;">S/ {r_row['Precio_Num']:,.2f} contado</span> 
+                                    {f'| S/ {p_mens} mensual' if p_mens and str(p_mens)!='nan' else ''}<br>
+                                    <b>• Tarifa / Segmento:</b> {tar_name if tar_name else 'Única'}<br>
+                                    <b>• Sedes Incluidas:</b> {sed_name if sed_name else 'Todas las sedes'}<br>
+                                    <b>• Duración / Modalidad:</b> {dur_name} | {r_row.get('Modalidad','')} | Turno {r_row.get('Turno','')}
+                                </div>
+                                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.markdown("#### 📋 Matriz Detallada Completa de Precios de Competencia")
+        cols_to_show = [c for c in [comp_col_name, uni_col_name, 'Ciclo', 'Tarifa / Segmento', 'Sedes incluidas', mod_col_name, 'Turno', 'Duración', 'Pago al contado', 'Contado comparable (S/)', 'Mensual comparable (S/)', 'Fuente / URL'] if c in df_bench_filtered.columns]
+        st.dataframe(df_bench_filtered[cols_to_show], use_container_width=True)
+        
+        csv_bench = df_bench_filtered.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 Descargar Estudio de Benchmarking Filtrado (CSV)", csv_bench, "Benchmarking_Competencia_Preu_Lima.csv", "text/csv")
+    else:
+        st.info("No hay marcas de competencia seleccionadas que coincidan con los filtros de la barra lateral.")
+
+# =============================================================================
+# BLOQUE 4: TABLAS Y ACORDEÓN ERGONÓMICO COMPACTO (FINAL DE LA PÁGINA)
+# =============================================================================
+st.subheader("📋 » Tablas de Consulta Detallada y Reseñas de Mercado")
+
+tab_acordeon, tab_bench_sedes, tab_demanda, tab_tabla_comp, tab_col, tab_resumen = st.tabs([
+    "💬 RESEÑAS POR MARCA Y SEDE", 
+    "🏢 SEDES COMPETENCIA CONSOLIDADO (63 LOCALES)",
     "📈 MODELO DE DEMANDA Y MERCADO ASIGNADO",
-    "📙 Academias Tabla Completa", 
-    "🏫 Colegios Activos MINEDU", 
-    "📊 Tabla Resumen Ejecutivo"
+    "📙 ACADEMIAS TABLA COMPLETA", 
+    "🏫 COLEGIOS ACTIVOS MINEDU", 
+    "📊 TABLA RESUMEN EJECUTIVO"
 ])
 
 with tab_acordeon:
@@ -852,6 +1180,15 @@ with tab_acordeon:
                             st.markdown(f'<a href="{row["enlace_gmaps"]}" target="_blank" style="font-size: 11px; font-weight: bold; color: #FF0E49;">🔗 Abrir Local en Google Maps</a>', unsafe_allow_html=True)
     else:
         st.info("No hay marcas de competencia que coincidan con los filtros seleccionados.")
+
+with tab_bench_sedes:
+    st.markdown("### » Consolidado de Sedes de Competencia en Lima (63 Locales Mapeados)")
+    if not df_bench_sedes.empty:
+        st.dataframe(df_bench_sedes, use_container_width=True)
+        csv_bs = df_bench_sedes.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 Descargar Consolidado de Sedes de Competencia (CSV)", csv_bs, "Sedes_Competencia_Consolidado_Lima.csv", "text/csv")
+    else:
+        st.info("No se cargó la tabla de sedes.")
 
 with tab_demanda:
     st.markdown("### » Detalle del Modelo de Demanda (Población Distrital y Reparto de Postulantes)")
