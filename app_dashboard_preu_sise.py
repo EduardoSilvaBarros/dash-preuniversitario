@@ -3,6 +3,7 @@
 DASHBOARD EJECUTIVO ESTRATÉGICO — LANZAMIENTO PREUNIVERSITARIO SISE
 ===============================================================================
 Aplicación Interactiva en Streamlit para Análisis C-Level (Brandbook SISE 2022):
+  - Detección Dinámica de Columnas de Benchmarking (Evita KeyError en Streamlit Cloud)
   - Flujo Narrativo Ajustado: Mapa Interactivo posicionado inmediatamente después del Punto 2 (Alumnos Objetivo)
   - Modelo de Capacidad Ajustado: 19 alumnos promedio por aula (sin supuestos de costos docentes)
   - Mapeo Inteligente de Marcas: 'César Vallejo y ADUNI' incluye tanto 'César Vallejo' como 'Aduni'
@@ -1004,9 +1005,40 @@ with st.expander("🔍 2. BENCHMARKING DE COMPETENCIA — ANÁLISIS POR MARCA Y 
         uni_col_name = 'Universidad objetivo' if 'Universidad objetivo' in df_bench_filtered.columns else 'Universidad'
         mod_col_name = 'Modalidad' if 'Modalidad' in df_bench_filtered.columns else 'Modalidad'
         
-        # PREPARAR DATAFRAME DE BENCHMARKING
+        # PREPARAR DATAFRAME DE BENCHMARKING CON DETECCIÓN DINÁMICA DE COLUMNAS
         df_b_proc = df_bench_filtered.copy()
-        df_b_proc['Precio_Num'] = pd.to_numeric(df_b_proc['Contado comparable (S/)'], errors='coerce').fillna(0)
+
+        # Detección dinámica de columna de precio al contado
+        contado_col = None
+        for c in df_b_proc.columns:
+            c_low = str(c).lower()
+            if 'contado' in c_low and ('comparable' in c_low or 'regular' in c_low or 'precio' in c_low):
+                contado_col = c
+                break
+        if not contado_col:
+            for c in df_b_proc.columns:
+                if 'contado' in str(c).lower():
+                    contado_col = c
+                    break
+
+        # Detección dinámica de columna de precio mensual
+        mensual_col = None
+        for c in df_b_proc.columns:
+            c_low = str(c).lower()
+            if 'mensual' in c_low and ('comparable' in c_low or 'regular' in c_low or 'precio' in c_low or 'cuota' in c_low):
+                mensual_col = c
+                break
+        if not mensual_col:
+            for c in df_b_proc.columns:
+                if 'mensual' in str(c).lower():
+                    mensual_col = c
+                    break
+
+        if contado_col:
+            df_b_proc['Precio_Num'] = pd.to_numeric(df_b_proc[contado_col], errors='coerce').fillna(0)
+        else:
+            df_b_proc['Precio_Num'] = 0.0
+
         df_b_proc = df_b_proc[df_b_proc['Precio_Num'] > 0].copy()
         
         for col in [comp_col_name, uni_col_name, 'Ciclo', 'Tarifa / Segmento', 'Sedes incluidas', mod_col_name]:
@@ -1107,7 +1139,7 @@ with st.expander("🔍 2. BENCHMARKING DE COMPETENCIA — ANÁLISIS POR MARCA Y 
                                 tar_name = r_row.get('Tarifa / Segmento', '')
                                 sed_name = r_row.get('Sedes incluidas', '')
                                 dur_name = r_row.get('Duración', '')
-                                p_mens = r_row.get('Mensual comparable (S/)', '')
+                                p_mens = r_row.get(mensual_col, '') if mensual_col else r_row.get('Mensual comparable (S/)', '')
 
                                 st.markdown(f"""
                                 <div class="bench-drill-card">
@@ -1121,7 +1153,7 @@ with st.expander("🔍 2. BENCHMARKING DE COMPETENCIA — ANÁLISIS POR MARCA Y 
 
         st.markdown("---")
         st.markdown("#### 📋 Matriz Detallada Completa de Precios de Competencia")
-        cols_to_show = [c for c in [comp_col_name, uni_col_name, 'Ciclo', 'Tarifa / Segmento', 'Sedes incluidas', mod_col_name, 'Turno', 'Duración', 'Pago al contado', 'Contado comparable (S/)', 'Mensual comparable (S/)', 'Fuente / URL'] if c in df_bench_filtered.columns]
+        cols_to_show = [c for c in [comp_col_name, uni_col_name, 'Ciclo', 'Tarifa / Segmento', 'Sedes incluidas', mod_col_name, 'Turno', 'Duración', 'Pago al contado', contado_col, mensual_col, 'Fuente / URL'] if c and c in df_bench_filtered.columns]
         st.dataframe(df_bench_filtered[cols_to_show], use_container_width=True)
         
         csv_bench = df_bench_filtered.to_csv(index=False).encode('utf-8-sig')
